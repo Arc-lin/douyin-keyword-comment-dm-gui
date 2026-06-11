@@ -373,6 +373,14 @@
                   <input id="actionTimeoutMs" name="actionTimeoutMs" type="number" min="1000" max="60000">
                 </div>
                 <div class="field">
+                  <label for="dmReadyTimeoutMs">私信 DOM 等待（毫秒）</label>
+                  <input id="dmReadyTimeoutMs" name="dmReadyTimeoutMs" type="number" min="1000" max="120000">
+                </div>
+                <div class="field">
+                  <label for="dmOpenRetries">私信浮窗重试次数</label>
+                  <input id="dmOpenRetries" name="dmOpenRetries" type="number" min="0" max="5">
+                </div>
+                <div class="field">
                   <label for="navigationTimeoutMs">导航超时（毫秒）</label>
                   <input id="navigationTimeoutMs" name="navigationTimeoutMs" type="number" min="5000" max="180000">
                 </div>
@@ -462,7 +470,8 @@
 
       const numericFields = new Set([
         "videoCount", "matchesPerVideo", "candidateLimit", "maxComments",
-        "maxScrolls", "actionTimeoutMs", "navigationTimeoutMs", "minDelayMs", "maxDelayMs"
+        "maxScrolls", "actionTimeoutMs", "dmReadyTimeoutMs", "dmOpenRetries",
+        "navigationTimeoutMs", "minDelayMs", "maxDelayMs"
       ]);
 
       function formConfig() {

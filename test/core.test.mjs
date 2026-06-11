@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   parseKeywords,
+  normalizeDisplayName,
   resultsToCsv,
   sampleWithoutReplacement,
   validateConfig
@@ -9,6 +10,14 @@ import {
 
 test("parseKeywords supports commas, Chinese commas and newlines with dedupe", () => {
   assert.deepEqual(parseKeywords("买,购买，想买\n买"), ["买", "购买", "想买"]);
+});
+
+test("normalizeDisplayName ignores decorative symbols but preserves the name", () => {
+  assert.equal(normalizeDisplayName("⭐小🐟马⭐"), "小马");
+  assert.equal(
+    normalizeDisplayName("F1n3⚡️（黑屋毁灭者）"),
+    normalizeDisplayName("F1n3（黑屋毁灭者）")
+  );
 });
 
 test("validateConfig enforces the 20-recipient hard limit", () => {

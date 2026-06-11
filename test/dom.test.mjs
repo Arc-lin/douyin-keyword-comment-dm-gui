@@ -10,6 +10,7 @@ import {
   discoverBrowserExecutable,
   extractSearchCandidates,
   extractTopLevelComments,
+  openCandidate,
   selectSearchFilterOption,
   sendDirectMessage,
   waitForComments
@@ -240,6 +241,8 @@ test("message send survives a contenteditable replacement after filling", async 
     const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
     const result = await sendDirectMessage(page, url, "你好", {
       actionTimeoutMs: 3_000,
+      dmReadyTimeoutMs: 3_000,
+      dmOpenRetries: 1,
       navigationTimeoutMs: 10_000
     });
     assert.equal(result.status, "sent");
@@ -271,13 +274,17 @@ test("message send refuses to use an editor from the wrong active conversation",
     const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
     const result = await sendDirectMessage(page, url, "你好", {
       actionTimeoutMs: 1_000,
+      dmReadyTimeoutMs: 500,
+      dmOpenRetries: 1,
       navigationTimeoutMs: 10_000
     });
     assert.equal(result.status, "failed");
-    assert.match(result.detail, /当前会话为“上一位用户”/);
+    assert.match(result.detail, /当前为“上一位用户”/);
     assert.equal(
-      (await page.locator('[contenteditable="true"]').innerText()).trim(),
-      ""
+      (await page.locator('[contenteditable="true"]').allInnerTexts()).every(
+        (text) => text.trim() === ""
+      ),
+      true
     );
   });
 });
@@ -302,6 +309,8 @@ test("message send returns a user-level failure when text remains unsent", async
     const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
     const result = await sendDirectMessage(page, url, "你好", {
       actionTimeoutMs: 600,
+      dmReadyTimeoutMs: 600,
+      dmOpenRetries: 1,
       navigationTimeoutMs: 10_000
     });
     assert.equal(result.status, "failed");
@@ -330,12 +339,174 @@ test("message send reports a timed out floating window without navigating away e
     const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
     const result = await sendDirectMessage(page, url, "你好", {
       actionTimeoutMs: 1_000,
+      dmReadyTimeoutMs: 300,
+      dmOpenRetries: 1,
       navigationTimeoutMs: 10_000
     });
     assert.equal(result.status, "unavailable");
-    assert.match(result.detail, /1000ms 内未加载输入框/);
+    assert.match(result.detail, /2 次 DOM 监听仍未加载输入框/);
     assert.equal(await page.getByText("私信浮窗已打开").count(), 1);
   });
+});
+
+test("message send catches a late panel during a DOM-observed retry", async () => {
+  await withPage(async (page) => {
+    const html = `
+      <!doctype html>
+      <html><body>
+        <h1>延迟用户</h1>
+        <button id="dm">私信</button>
+        <section id="conversation"></section>
+        <script>
+          let scheduled = false;
+          function send(event) {
+            if (event.key !== "Enter") return;
+            const message = document.createElement("span");
+            message.textContent = event.currentTarget.innerText;
+            document.querySelector("#conversation").append(message);
+            event.currentTarget.innerText = "";
+          }
+          document.querySelector("#dm").addEventListener("click", () => {
+            if (scheduled) return;
+            scheduled = true;
+            setTimeout(() => {
+              document.body.insertAdjacentHTML("beforeend", \`
+                <div class="componentsRightPanelwrapper">
+                  <div class="RightPanelHeadertitle">⭐延迟用户⭐</div>
+                  <div id="editor" contenteditable="true" data-placeholder="发送消息"
+                       style="width:300px;height:40px"></div>
+                </div>
+              \`);
+              document.querySelector("#editor").addEventListener("keydown", send);
+            }, 450);
+          });
+        </script>
+      </body></html>
+    `;
+    const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    const stages = [];
+    const result = await sendDirectMessage(
+      page,
+      url,
+      "你好",
+      {
+        actionTimeoutMs: 1_000,
+        dmReadyTimeoutMs: 300,
+        dmOpenRetries: 2,
+        navigationTimeoutMs: 10_000
+      },
+      {
+        expectedUsername: "延迟用户",
+        onStage: (message) => stages.push(message)
+      }
+    );
+    assert.equal(result.status, "sent");
+    assert.equal(stages.some((message) => message.includes("重新唤起")), true);
+  });
+});
+
+test("message send accepts decorative differences in the active conversation", async () => {
+  await withPage(async (page) => {
+    const html = `
+      <!doctype html>
+      <html><body>
+        <h1>小马</h1>
+        <button id="dm">私信</button>
+        <section id="conversation"></section>
+        <script>
+          document.querySelector("#dm").addEventListener("click", () => {
+            if (document.querySelector("#editor")) return;
+            document.body.insertAdjacentHTML("beforeend", \`
+              <div class="componentsRightPanelwrapper">
+                <div class="RightPanelHeadertitle">⭐小🐟马⭐</div>
+                <div id="editor" contenteditable="true" data-placeholder="发送消息"
+                     style="width:300px;height:40px"></div>
+              </div>
+            \`);
+            document.querySelector("#editor").addEventListener("keydown", (event) => {
+              if (event.key !== "Enter") return;
+              const message = document.createElement("span");
+              message.textContent = event.currentTarget.innerText;
+              document.querySelector("#conversation").append(message);
+              event.currentTarget.innerText = "";
+            });
+          });
+        </script>
+      </body></html>
+    `;
+    const url = `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
+    const result = await sendDirectMessage(
+      page,
+      url,
+      "你好",
+      {
+        actionTimeoutMs: 1_000,
+        dmReadyTimeoutMs: 1_000,
+        dmOpenRetries: 1,
+        navigationTimeoutMs: 10_000
+      },
+      { expectedUsername: "小马" }
+    );
+    assert.equal(result.status, "sent");
+  });
+});
+
+test("openCandidate keeps search and video detail on separate pages", async () => {
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath: discoverBrowserExecutable()
+  });
+  try {
+    const context = await browser.newContext();
+    const searchPage = await context.newPage();
+    const detailPage = await context.newPage();
+    await context.route("https://www.douyin.com/**", async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname.startsWith("/video/")) {
+        await route.fulfill({
+          contentType: "text/html",
+          body: "<!doctype html><html><body>视频详情</body></html>"
+        });
+        return;
+      }
+      await route.fulfill({
+        contentType: "text/html",
+        body: "<!doctype html><html><body>搜索页</body></html>"
+      });
+    });
+    const searchUrl = "https://www.douyin.com/search/test?type=general";
+    await searchPage.goto(searchUrl);
+    await searchPage.setContent(`<!doctype html><html><body>
+      <div class="search-result-card" style="width:240px;height:180px">
+        <img alt="封面" style="width:200px;height:120px">
+        <span>目标视频</span>
+      </div>
+      <script>
+        document.querySelector(".search-result-card").addEventListener("click", () => {
+          history.pushState({}, "", "?modal_id=1234567890123456789&type=general");
+        });
+        addEventListener("keydown", (event) => {
+          if (event.key === "Escape") history.pushState({}, "", "?type=general");
+        });
+      </script>
+    </body></html>`);
+    const videoId = await openCandidate(
+      searchPage,
+      { title: "目标视频", videoId: "" },
+      searchUrl,
+      { actionTimeoutMs: 2_000, navigationTimeoutMs: 10_000 },
+      detailPage
+    );
+    assert.equal(videoId, "1234567890123456789");
+    assert.equal(new URL(searchPage.url()).searchParams.has("modal_id"), false);
+    assert.equal(
+      detailPage.url(),
+      "https://www.douyin.com/video/1234567890123456789"
+    );
+    await context.close();
+  } finally {
+    await browser.close();
+  }
 });
 
 test("filter option selection tolerates delayed menu rendering", async () => {

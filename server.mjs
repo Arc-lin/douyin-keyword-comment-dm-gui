@@ -95,7 +95,8 @@ export class RunController {
     };
     this.events.push(event);
     if (this.events.length > 500) this.events.shift();
-    this.storage.appendRunEvent(this.id, event).catch(() => {});
+    const { snapshot: _snapshot, ...persistedEvent } = event;
+    this.storage.appendRunEvent(this.id, persistedEvent).catch(() => {});
     for (const listener of this.listeners) listener(event);
   }
 
