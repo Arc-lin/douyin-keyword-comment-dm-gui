@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>抖音评论关键词私信</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22><rect width=%2264%22 height=%2264%22 rx=%2216%22 fill=%22%2325f4ee%22/><path d=%22M38 13v27a12 12 0 1 1-8-11.3v8.7a4 4 0 1 0 0 7.2V13z%22 fill=%22%23090b10%22/></svg>">
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #090b10;
+        --panel: rgba(20, 23, 32, 0.9);
+        --panel-strong: #171b25;
+        --line: rgba(255, 255, 255, 0.09);
+        --muted: #8d95a8;
+        --text: #f5f7fb;
+        --accent: #ff2d55;
+        --accent-2: #25f4ee;
+        --warning: #ffb020;
+        --success: #31d07d;
+        --danger: #ff5d6c;
+        --radius: 18px;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 15% 10%, rgba(37, 244, 238, 0.11), transparent 32%),
+          radial-gradient(circle at 86% 8%, rgba(255, 45, 85, 0.12), transparent 30%),
+          var(--bg);
+        font-family: Inter, "Microsoft YaHei", "PingFang SC", system-ui, sans-serif;
+      }
+
+      button, input, select, textarea { font: inherit; }
+
+      .shell {
+        width: min(1440px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 30px 0 44px;
+      }
+
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+        margin-bottom: 24px;
+      }
+
+      .brand { display: flex; gap: 15px; align-items: center; }
+
+      .logo {
+        width: 48px;
+        height: 48px;
+        display: grid;
+        place-items: center;
+        border-radius: 15px;
+        background: linear-gradient(135deg, var(--accent-2), var(--accent));
+        color: #06070a;
+        font-weight: 900;
+        font-size: 22px;
+        box-shadow: 0 14px 35px rgba(255, 45, 85, 0.18);
+      }
+
+      h1, h2, p { margin: 0; }
+      h1 { font-size: clamp(23px, 3vw, 32px); letter-spacing: -0.03em; }
+      .subtitle { margin-top: 6px; color: var(--muted); font-size: 14px; }
+
+      .guard {
+        padding: 9px 13px;
+        border: 1px solid rgba(255, 176, 32, 0.28);
+        border-radius: 999px;
+        color: #ffd58b;
+        background: rgba(255, 176, 32, 0.08);
+        font-size: 13px;
+        white-space: nowrap;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.35fr);
+        gap: 20px;
+        align-items: start;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        background: var(--panel);
+        box-shadow: 0 22px 70px rgba(0, 0, 0, 0.26);
+        backdrop-filter: blur(18px);
+      }
+
+      .form-panel { padding: 22px; }
+      .section-title { font-size: 17px; margin-bottom: 18px; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+      }
+
+      .field { display: flex; flex-direction: column; gap: 7px; }
+      .field.full { grid-column: 1 / -1; }
+
+      label {
+        color: #cdd2df;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      input, select, textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        color: var(--text);
+        background: rgba(7, 9, 14, 0.72);
+        outline: none;
+        padding: 11px 12px;
+        transition: border-color 160ms ease, box-shadow 160ms ease;
+      }
+
+      input:focus, select:focus, textarea:focus {
+        border-color: rgba(37, 244, 238, 0.52);
+        box-shadow: 0 0 0 3px rgba(37, 244, 238, 0.08);
+      }
+
+      textarea { resize: vertical; min-height: 82px; line-height: 1.55; }
+      .hint { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+      details {
+        margin-top: 18px;
+        border-top: 1px solid var(--line);
+        padding-top: 16px;
+      }
+
+      summary {
+        cursor: pointer;
+        color: #dfe3ed;
+        font-weight: 700;
+        font-size: 14px;
+        margin-bottom: 16px;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 20px;
+      }
+
+      button {
+        border: 0;
+        border-radius: 12px;
+        cursor: pointer;
+        padding: 12px 16px;
+        font-weight: 800;
+        transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
+      }
+
+      button:hover:not(:disabled) { transform: translateY(-1px); }
+      button:disabled { cursor: not-allowed; opacity: 0.38; }
+      .primary { color: white; background: linear-gradient(135deg, #ff4167, #ef1746); }
+      .secondary { color: #071012; background: linear-gradient(135deg, #4ff7f1, #20cfc9); }
+      .ghost { color: #dfe3ed; background: rgba(255, 255, 255, 0.07); }
+      .danger { color: #ffccd2; background: rgba(255, 93, 108, 0.12); }
+      .wide { grid-column: 1 / -1; }
+
+      .workspace { display: flex; flex-direction: column; gap: 16px; }
+      .status-panel { padding: 20px; }
+
+      .status-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 11px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.07);
+        color: #dfe3ed;
+        font-size: 13px;
+        font-weight: 750;
+      }
+
+      .status-badge::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--muted);
+      }
+
+      .status-badge.active::before { background: var(--accent-2); box-shadow: 0 0 14px var(--accent-2); }
+      .status-badge.waiting::before { background: var(--warning); box-shadow: 0 0 14px var(--warning); }
+      .status-badge.success::before { background: var(--success); }
+      .status-badge.failed::before { background: var(--danger); }
+      #statusMessage { margin-top: 12px; color: var(--muted); font-size: 14px; }
+
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 18px;
+      }
+
+      .metric {
+        padding: 13px;
+        border-radius: 13px;
+        border: 1px solid var(--line);
+        background: rgba(5, 7, 11, 0.4);
+      }
+
+      .metric strong { display: block; font-size: 22px; }
+      .metric span { color: var(--muted); font-size: 11px; }
+
+      .toolbar { display: flex; gap: 9px; flex-wrap: wrap; margin-top: 16px; }
+      .toolbar button { padding: 9px 13px; font-size: 13px; }
+      .hidden { display: none !important; }
+
+      .data-panel { overflow: hidden; }
+      .tabs {
+        display: flex;
+        gap: 4px;
+        padding: 10px 12px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .tab {
+        color: var(--muted);
+        background: transparent;
+        border-radius: 9px 9px 0 0;
+        padding: 10px 13px;
+      }
+      .tab.active { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+
+      .tab-content { min-height: 390px; max-height: 520px; overflow: auto; }
+      #logView {
+        padding: 16px;
+        font: 12px/1.65 ui-monospace, SFMono-Regular, Consolas, monospace;
+      }
+
+      .log-line { color: #b7becd; margin-bottom: 5px; white-space: pre-wrap; }
+      .log-line.warn { color: #ffd58b; }
+      .log-line.error { color: #ff9ca7; }
+      .log-time { color: #636c80; margin-right: 8px; }
+
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td {
+        text-align: left;
+        padding: 11px 12px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        position: sticky;
+        top: 0;
+        background: #161a23;
+        color: #aab2c4;
+        z-index: 1;
+      }
+      td { color: #d9deea; max-width: 230px; word-break: break-word; }
+      .empty { padding: 50px 20px; text-align: center; color: var(--muted); }
+
+      .error-box {
+        margin-top: 14px;
+        padding: 11px 12px;
+        border: 1px solid rgba(255, 93, 108, 0.3);
+        border-radius: 11px;
+        background: rgba(255, 93, 108, 0.08);
+        color: #ffb2bb;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 960px) {
+        header { align-items: flex-start; flex-direction: column; }
+        .layout { grid-template-columns: 1fr; }
+      }
+
+      @media (max-width: 620px) {
+        .shell { width: min(100% - 20px, 1440px); padding-top: 18px; }
+        .grid, .actions { grid-template-columns: 1fr; }
+        .field.full, .wide { grid-column: auto; }
+        .metrics { grid-template-columns: repeat(2, 1fr); }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div class="brand">
+          <div class="logo">D</div>
+          <div>
+            <h1>抖音评论关键词私信</h1>
+            <p class="subtitle">授权账号的小批量评论筛选与私信工具</p>
+          </div>
+        </div>
+        <div class="guard">单次最多 20 人 · 不绕过平台验证</div>
+      </header>
+
+      <div class="layout">
+        <section class="panel form-panel">
+          <h2 class="section-title">任务参数</h2>
+          <form id="configForm">
+            <div class="grid">
+              <div class="field full">
+                <label for="query">搜索词</label>
+                <input id="query" name="query" maxlength="100" placeholder="例如：显卡筛选项">
+              </div>
+              <div class="field">
+                <label for="publishTime">发布时间</label>
+                <select id="publishTime" name="publishTime">
+                  <option>不限</option>
+                  <option>一天内</option>
+                  <option>一周内</option>
+                  <option>半年内</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="videoCount">随机视频数</label>
+                <input id="videoCount" name="videoCount" type="number" min="1" max="20">
+              </div>
+              <div class="field">
+                <label for="matchesPerVideo">每视频目标人数</label>
+                <input id="matchesPerVideo" name="matchesPerVideo" type="number" min="1" max="20">
+              </div>
+              <div class="field full">
+                <label for="keywords">评论关键词</label>
+                <textarea id="keywords" name="keywords" placeholder="多个关键词用逗号或换行分隔，命中任意一个即可"></textarea>
+              </div>
+              <div class="field full">
+                <label for="message">固定私信内容</label>
+                <textarea id="message" name="message" maxlength="500" placeholder="开始发送时必填"></textarea>
+                <span class="hint">仅预览不会打开私信窗口，也不会写入已联系历史。</span>
+              </div>
+            </div>
+
+            <details>
+              <summary>高级设置</summary>
+              <div class="grid">
+                <div class="field">
+                  <label for="sortOrder">排序方式</label>
+                  <select id="sortOrder" name="sortOrder">
+                    <option>综合排序</option>
+                    <option>最新发布</option>
+                    <option>最多点赞</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="candidateLimit">候选视频上限</label>
+                  <input id="candidateLimit" name="candidateLimit" type="number" min="1" max="100">
+                </div>
+                <div class="field">
+                  <label for="maxComments">每视频评论上限</label>
+                  <input id="maxComments" name="maxComments" type="number" min="1" max="500">
+                </div>
+                <div class="field">
+                  <label for="maxScrolls">评论滚动轮数</label>
+                  <input id="maxScrolls" name="maxScrolls" type="number" min="1" max="50">
+                </div>
+                <div class="field">
+                  <label for="actionTimeoutMs">操作超时（毫秒）</label>
+                  <input id="actionTimeoutMs" name="actionTimeoutMs" type="number" min="1000" max="60000">
+                </div>
+                <div class="field">
+                  <label for="navigationTimeoutMs">导航超时（毫秒）</label>
+                  <input id="navigationTimeoutMs" name="navigationTimeoutMs" type="number" min="5000" max="180000">
+                </div>
+                <div class="field">
+                  <label for="minDelayMs">最小发送间隔（毫秒）</label>
+                  <input id="minDelayMs" name="minDelayMs" type="number" min="0" max="60000">
+                </div>
+                <div class="field">
+                  <label for="maxDelayMs">最大发送间隔（毫秒）</label>
+                  <input id="maxDelayMs" name="maxDelayMs" type="number" min="0" max="120000">
+                </div>
+              </div>
+            </details>
+
+            <div id="formErrors" class="error-box hidden"></div>
+            <div class="actions">
+              <button class="secondary" id="previewButton" type="button">仅预览</button>
+              <button class="primary" id="sendButton" type="button">开始发送</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="workspace">
+          <div class="panel status-panel">
+            <div class="status-head">
+              <div>
+                <span id="statusBadge" class="status-badge">idle</span>
+                <p id="statusMessage">等待创建任务</p>
+              </div>
+            </div>
+
+            <div class="metrics">
+              <div class="metric"><strong id="selectedMetric">0</strong><span>已选视频</span></div>
+              <div class="metric"><strong id="scannedMetric">0</strong><span>扫描评论</span></div>
+              <div class="metric"><strong id="matchedMetric">0</strong><span>匹配用户</span></div>
+              <div class="metric"><strong id="sentMetric">0</strong><span>发送成功</span></div>
+            </div>
+
+            <div class="toolbar">
+              <button id="continueButton" class="secondary hidden" type="button">登录完成，继续</button>
+              <button id="stopButton" class="danger" type="button" disabled>停止任务</button>
+              <button id="exportButton" class="ghost" type="button" disabled>导出 CSV</button>
+            </div>
+          </div>
+
+          <div class="panel data-panel">
+            <div class="tabs">
+              <button class="tab active" data-tab="logs" type="button">运行日志</button>
+              <button class="tab" data-tab="results" type="button">结果</button>
+            </div>
+            <div id="logView" class="tab-content"></div>
+            <div id="resultView" class="tab-content hidden">
+              <div id="emptyResults" class="empty">暂无结果</div>
+              <table id="resultTable" class="hidden">
+                <thead>
+                  <tr>
+                    <th>视频</th>
+                    <th>用户</th>
+                    <th>命中评论</th>
+                    <th>状态</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const form = document.querySelector("#configForm");
+      const formErrors = document.querySelector("#formErrors");
+      const previewButton = document.querySelector("#previewButton");
+      const sendButton = document.querySelector("#sendButton");
+      const stopButton = document.querySelector("#stopButton");
+      const continueButton = document.querySelector("#continueButton");
+      const exportButton = document.querySelector("#exportButton");
+      const statusBadge = document.querySelector("#statusBadge");
+      const statusMessage = document.querySelector("#statusMessage");
+      const logView = document.querySelector("#logView");
+      const resultTable = document.querySelector("#resultTable");
+      const resultBody = resultTable.querySelector("tbody");
+      const emptyResults = document.querySelector("#emptyResults");
+      let currentRunId = null;
+      let eventSource = null;
+
+      const numericFields = new Set([
+        "videoCount", "matchesPerVideo", "candidateLimit", "maxComments",
+        "maxScrolls", "actionTimeoutMs", "navigationTimeoutMs", "minDelayMs", "maxDelayMs"
+      ]);
+
+      function formConfig() {
+        const data = Object.fromEntries(new FormData(form));
+        for (const field of numericFields) data[field] = Number(data[field]);
+        return data;
+      }
+
+      function fillForm(config) {
+        for (const [key, value] of Object.entries(config || {})) {
+          if (form.elements[key]) form.elements[key].value = value;
+        }
+      }
+
+      function showErrors(errors) {
+        if (!errors?.length) {
+          formErrors.classList.add("hidden");
+          formErrors.textContent = "";
+          return;
+        }
+        formErrors.textContent = errors.join("；");
+        formErrors.classList.remove("hidden");
+      }
+
+      function clientErrors(mode, config) {
+        const errors = [];
+        if (!config.query.trim()) errors.push("搜索词不能为空");
+        const keywords = config.keywords.split(/[\n,，]+/).map((item) => item.trim()).filter(Boolean);
+        if (!keywords.length) errors.push("至少填写一个评论关键词");
+        if (mode === "send" && !config.message.trim()) errors.push("发送模式下私信内容不能为空");
+        if (config.videoCount * config.matchesPerVideo > 20) {
+          errors.push("视频数 × 每视频人数不能超过 20");
+        }
+        if (config.minDelayMs > config.maxDelayMs) {
+          errors.push("最小发送间隔不能大于最大发送间隔");
+        }
+        return errors;
+      }
+
+      function addLog(level, message, timestamp = new Date().toISOString()) {
+        const line = document.createElement("div");
+        line.className = `log-line ${level || ""}`;
+        const time = document.createElement("span");
+        time.className = "log-time";
+        time.textContent = new Date(timestamp).toLocaleTimeString();
+        line.append(time, document.createTextNode(message));
+        logView.append(line);
+        logView.scrollTop = logView.scrollHeight;
+      }
+
+      function renderResults(results) {
+        resultBody.replaceChildren();
+        const hasResults = Boolean(results?.length);
+        emptyResults.classList.toggle("hidden", hasResults);
+        resultTable.classList.toggle("hidden", !hasResults);
+        for (const result of results || []) {
+          const row = document.createElement("tr");
+          for (const value of [
+            result.videoTitle || "",
+            result.username || "",
+            result.commentText || result.detail || "",
+            result.status || ""
+          ]) {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            row.append(cell);
+          }
+          resultBody.append(row);
+        }
+      }
+
+      function applySnapshot(snapshot) {
+        if (!snapshot) return;
+        currentRunId = snapshot.id;
+        statusBadge.textContent = snapshot.status;
+        statusMessage.textContent = snapshot.message || "";
+        statusBadge.className = "status-badge";
+        if (["searching", "scanning", "sending"].includes(snapshot.status)) statusBadge.classList.add("active");
+        if (snapshot.status === "waiting_login") statusBadge.classList.add("waiting");
+        if (snapshot.status === "completed") statusBadge.classList.add("success");
+        if (["failed", "stopped"].includes(snapshot.status)) statusBadge.classList.add("failed");
+
+        document.querySelector("#selectedMetric").textContent = snapshot.counts?.selectedVideos ?? 0;
+        document.querySelector("#scannedMetric").textContent = snapshot.counts?.scannedComments ?? 0;
+        document.querySelector("#matchedMetric").textContent = snapshot.counts?.matchedUsers ?? 0;
+        document.querySelector("#sentMetric").textContent = snapshot.counts?.sent ?? 0;
+        renderResults(snapshot.results || []);
+
+        const terminal = ["completed", "stopped", "failed"].includes(snapshot.status);
+        const running = !terminal && snapshot.status !== "idle";
+        previewButton.disabled = running;
+        sendButton.disabled = running;
+        stopButton.disabled = !running;
+        continueButton.classList.toggle("hidden", snapshot.status !== "waiting_login");
+        exportButton.disabled = !(snapshot.results?.length);
+        if (terminal) eventSource?.close();
+      }
+
+      function connectEvents(runId) {
+        eventSource?.close();
+        eventSource = new EventSource(`/api/runs/${encodeURIComponent(runId)}/events`);
+        eventSource.addEventListener("snapshot", (event) => applySnapshot(JSON.parse(event.data)));
+        eventSource.addEventListener("update", (event) => {
+          const update = JSON.parse(event.data);
+          if (update.type === "log") addLog(update.level, update.message, update.timestamp);
+          applySnapshot(update.snapshot);
+        });
+        eventSource.onerror = () => addLog("warn", "进度连接暂时中断，浏览器会自动重连");
+      }
+
+      async function request(url, options = {}) {
+        const response = await fetch(url, {
+          ...options,
+          headers: { "content-type": "application/json", ...(options.headers || {}) }
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) throw Object.assign(new Error(body.error || "请求失败"), { body });
+        return body;
+      }
+
+      async function startRun(mode) {
+        showErrors([]);
+        logView.replaceChildren();
+        renderResults([]);
+        const config = formConfig();
+        const localErrors = clientErrors(mode, config);
+        if (localErrors.length) {
+          showErrors(localErrors);
+          return;
+        }
+        try {
+          const snapshot = await request("/api/runs", {
+            method: "POST",
+            body: JSON.stringify({ mode, config })
+          });
+          addLog("info", mode === "preview" ? "已创建预览任务" : "已创建发送任务");
+          applySnapshot(snapshot);
+          connectEvents(snapshot.id);
+        } catch (error) {
+          showErrors(error.body?.errors || [error.message]);
+        }
+      }
+
+      previewButton.addEventListener("click", () => startRun("preview"));
+      sendButton.addEventListener("click", () => startRun("send"));
+      stopButton.addEventListener("click", async () => {
+        if (!currentRunId) return;
+        await request(`/api/runs/${encodeURIComponent(currentRunId)}/stop`, {
+          method: "POST",
+          body: "{}"
+        }).catch((error) => showErrors([error.message]));
+      });
+      continueButton.addEventListener("click", async () => {
+        if (!currentRunId) return;
+        await request(`/api/runs/${encodeURIComponent(currentRunId)}/continue`, {
+          method: "POST",
+          body: "{}"
+        }).catch((error) => showErrors([error.message]));
+      });
+      exportButton.addEventListener("click", () => {
+        if (currentRunId) location.href = `/api/runs/${encodeURIComponent(currentRunId)}/results.csv`;
+      });
+
+      document.querySelectorAll(".tab").forEach((tab) => {
+        tab.addEventListener("click", () => {
+          document.querySelectorAll(".tab").forEach((item) => item.classList.toggle("active", item === tab));
+          document.querySelector("#logView").classList.toggle("hidden", tab.dataset.tab !== "logs");
+          document.querySelector("#resultView").classList.toggle("hidden", tab.dataset.tab !== "results");
+        });
+      });
+
+      Promise.all([
+        request("/api/config"),
+        request("/api/runs/current")
+      ]).then(([config, current]) => {
+        fillForm(config);
+        if (current) {
+          applySnapshot(current);
+          if (!["completed", "stopped", "failed"].includes(current.status)) connectEvents(current.id);
+        }
+        addLog("info", "界面已就绪");
+      }).catch((error) => showErrors([error.message]));
+    </script>
+  </body>
+</html>
