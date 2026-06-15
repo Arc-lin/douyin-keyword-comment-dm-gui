@@ -20,20 +20,6 @@ test("normalizeDisplayName ignores decorative symbols but preserves the name", (
   );
 });
 
-test("validateConfig enforces the 20-recipient hard limit", () => {
-  const result = validateConfig(
-    {
-      query: "显卡",
-      keywords: "买",
-      message: "你好",
-      videoCount: 5,
-      matchesPerVideo: 5
-    },
-    "send"
-  );
-  assert.match(result.errors.join("\n"), /不能超过 20/);
-});
-
 test("preview does not require message but send does", () => {
   const config = { query: "显卡", keywords: "买", videoCount: 2, matchesPerVideo: 1 };
   assert.equal(validateConfig(config, "preview").errors.includes("发送模式下私信内容不能为空"), false);

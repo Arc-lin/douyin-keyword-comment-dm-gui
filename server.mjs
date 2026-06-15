@@ -2,6 +2,7 @@ import http from "node:http";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { createRequire } from "node:module";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { randomUUID } from "node:crypto";
 import { resultsToCsv, validateConfig } from "./lib/core.mjs";
@@ -12,6 +13,8 @@ import {
 } from "./lib/douyin-runner.mjs";
 import { Storage } from "./lib/storage.mjs";
 
+const { name: APP_NAME, version: APP_VERSION } =
+  createRequire(import.meta.url)("./package.json");
 const ROOT_DIR = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.join(ROOT_DIR, "public");
 const TERMINAL_STATUSES = new Set(["completed", "stopped", "failed"]);
@@ -168,9 +171,10 @@ export class RunController {
 
 export async function createApplication({
   rootDir = ROOT_DIR,
+  dataDir = process.env.DOUYIN_DATA_DIR || path.join(rootDir, "data"),
   taskRunner = runDouyinTask
 } = {}) {
-  const storage = new Storage(rootDir);
+  const storage = new Storage(rootDir, dataDir);
   await storage.initialize();
   const runs = new Map();
   let activeRun = null;
@@ -191,6 +195,14 @@ export async function createApplication({
 
       if (request.method === "GET" && pathname === "/") {
         await serveIndex(response);
+        return;
+      }
+
+      if (request.method === "GET" && pathname === "/api/health") {
+        json(response, 200, {
+          app: APP_NAME,
+          version: APP_VERSION
+        });
         return;
       }
 
@@ -316,26 +328,88 @@ export async function createApplication({
   return { server, storage, runs, getActiveRun: () => activeRun };
 }
 
-function openBrowser(url) {
-  if (process.platform === "win32") {
-    const child = spawn("cmd.exe", ["/c", "start", "", url], {
+function spawnDetached(command, args) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
       detached: true,
       stdio: "ignore",
       windowsHide: true
     });
-    child.unref();
-  }
+    child.once("error", reject);
+    child.once("spawn", () => {
+      child.unref();
+      resolve();
+    });
+  });
 }
 
-async function main() {
+async function openBrowser(url) {
+  if (process.platform !== "win32") return;
+  const openers = [
+    ["explorer.exe", [url]],
+    ["rundll32.exe", ["url.dll,FileProtocolHandler", url]]
+  ];
+  let lastError;
+  for (const [command, args] of openers) {
+    try {
+      await spawnDetached(command, args);
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
+}
+
+function listenOnce(server, port, host) {
+  return new Promise((resolve, reject) => {
+    const onError = (error) => {
+      server.off("listening", onListening);
+      reject(error);
+    };
+    const onListening = () => {
+      server.off("error", onError);
+      resolve();
+    };
+    server.once("error", onError);
+    server.once("listening", onListening);
+    server.listen(port, host);
+  });
+}
+
+export async function listenOnAvailablePort(
+  server,
+  { host = "127.0.0.1", preferredPort = 3210, maxAttempts = 20 } = {}
+) {
+  for (let offset = 0; offset < maxAttempts; offset += 1) {
+    const port = preferredPort + offset;
+    if (port > 65535) break;
+    try {
+      await listenOnce(server, port, host);
+      return { host, port, url: `http://${host}:${port}` };
+    } catch (error) {
+      if (error.code !== "EADDRINUSE") throw error;
+    }
+  }
+  throw new Error(
+    `No available port found from ${preferredPort} to ${Math.min(
+      preferredPort + maxAttempts - 1,
+      65535
+    )}`
+  );
+}
+
+export async function main() {
   const { server } = await createApplication();
   const host = "127.0.0.1";
-  const port = Number.parseInt(process.env.PORT || "3210", 10);
-  server.listen(port, host, () => {
-    const url = `http://${host}:${port}`;
-    console.log(`抖音评论关键词私信 GUI 已启动：${url}`);
-    if (process.env.OPEN_BROWSER === "1") openBrowser(url);
+  const preferredPort = Number.parseInt(process.env.PORT || "3210", 10);
+  const listening = await listenOnAvailablePort(server, {
+    host,
+    preferredPort
   });
+  console.log(`抖音评论关键词私信 GUI 已启动：${listening.url}`);
+  if (process.env.OPEN_BROWSER === "1") await openBrowser(listening.url);
+  return listening;
 }
 
 const isMain = process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url;

@@ -70,16 +70,6 @@
       h1 { font-size: clamp(23px, 3vw, 32px); letter-spacing: -0.03em; }
       .subtitle { margin-top: 6px; color: var(--muted); font-size: 14px; }
 
-      .guard {
-        padding: 9px 13px;
-        border: 1px solid rgba(255, 176, 32, 0.28);
-        border-radius: 999px;
-        color: #ffd58b;
-        background: rgba(255, 176, 32, 0.08);
-        font-size: 13px;
-        white-space: nowrap;
-      }
-
       .layout {
         display: grid;
         grid-template-columns: minmax(360px, 0.9fr) minmax(520px, 1.35fr);
@@ -305,7 +295,6 @@
             <p class="subtitle">授权账号的小批量评论筛选与私信工具</p>
           </div>
         </div>
-        <div class="guard">单次最多 20 人 · 不绕过平台验证</div>
       </header>
 
       <div class="layout">
@@ -315,7 +304,7 @@
             <div class="grid">
               <div class="field full">
                 <label for="query">搜索词</label>
-                <input id="query" name="query" maxlength="100" placeholder="例如：显卡筛选项">
+                <input id="query" name="query" placeholder="例如：显卡筛选项">
               </div>
               <div class="field">
                 <label for="publishTime">发布时间</label>
@@ -328,11 +317,11 @@
               </div>
               <div class="field">
                 <label for="videoCount">随机视频数</label>
-                <input id="videoCount" name="videoCount" type="number" min="1" max="20">
+                <input id="videoCount" name="videoCount" type="number" min="1">
               </div>
               <div class="field">
                 <label for="matchesPerVideo">每视频目标人数</label>
-                <input id="matchesPerVideo" name="matchesPerVideo" type="number" min="1" max="20">
+                <input id="matchesPerVideo" name="matchesPerVideo" type="number" min="1">
               </div>
               <div class="field full">
                 <label for="keywords">评论关键词</label>
@@ -340,7 +329,7 @@
               </div>
               <div class="field full">
                 <label for="message">固定私信内容</label>
-                <textarea id="message" name="message" maxlength="500" placeholder="开始发送时必填"></textarea>
+                <textarea id="message" name="message" placeholder="开始发送时必填"></textarea>
                 <span class="hint">仅预览不会打开私信窗口，也不会写入已联系历史。</span>
               </div>
             </div>
@@ -358,39 +347,39 @@
                 </div>
                 <div class="field">
                   <label for="candidateLimit">候选视频上限</label>
-                  <input id="candidateLimit" name="candidateLimit" type="number" min="1" max="100">
+                  <input id="candidateLimit" name="candidateLimit" type="number" min="1">
                 </div>
                 <div class="field">
                   <label for="maxComments">每视频评论上限</label>
-                  <input id="maxComments" name="maxComments" type="number" min="1" max="500">
+                  <input id="maxComments" name="maxComments" type="number" min="1">
                 </div>
                 <div class="field">
                   <label for="maxScrolls">评论滚动轮数</label>
-                  <input id="maxScrolls" name="maxScrolls" type="number" min="1" max="50">
+                  <input id="maxScrolls" name="maxScrolls" type="number" min="1">
                 </div>
                 <div class="field">
                   <label for="actionTimeoutMs">操作超时（毫秒）</label>
-                  <input id="actionTimeoutMs" name="actionTimeoutMs" type="number" min="1000" max="60000">
+                  <input id="actionTimeoutMs" name="actionTimeoutMs" type="number" min="0">
                 </div>
                 <div class="field">
                   <label for="dmReadyTimeoutMs">私信 DOM 等待（毫秒）</label>
-                  <input id="dmReadyTimeoutMs" name="dmReadyTimeoutMs" type="number" min="1000" max="120000">
+                  <input id="dmReadyTimeoutMs" name="dmReadyTimeoutMs" type="number" min="0">
                 </div>
                 <div class="field">
                   <label for="dmOpenRetries">私信浮窗重试次数</label>
-                  <input id="dmOpenRetries" name="dmOpenRetries" type="number" min="0" max="5">
+                  <input id="dmOpenRetries" name="dmOpenRetries" type="number" min="0">
                 </div>
                 <div class="field">
                   <label for="navigationTimeoutMs">导航超时（毫秒）</label>
-                  <input id="navigationTimeoutMs" name="navigationTimeoutMs" type="number" min="5000" max="180000">
+                  <input id="navigationTimeoutMs" name="navigationTimeoutMs" type="number" min="0">
                 </div>
                 <div class="field">
                   <label for="minDelayMs">最小发送间隔（毫秒）</label>
-                  <input id="minDelayMs" name="minDelayMs" type="number" min="0" max="60000">
+                  <input id="minDelayMs" name="minDelayMs" type="number" min="0">
                 </div>
                 <div class="field">
                   <label for="maxDelayMs">最大发送间隔（毫秒）</label>
-                  <input id="maxDelayMs" name="maxDelayMs" type="number" min="0" max="120000">
+                  <input id="maxDelayMs" name="maxDelayMs" type="number" min="0">
                 </div>
               </div>
             </details>
@@ -499,12 +488,7 @@
       function clientErrors(mode, config) {
         const errors = [];
         if (!config.query.trim()) errors.push("搜索词不能为空");
-        const keywords = config.keywords.split(/[\n,，]+/).map((item) => item.trim()).filter(Boolean);
-        if (!keywords.length) errors.push("至少填写一个评论关键词");
         if (mode === "send" && !config.message.trim()) errors.push("发送模式下私信内容不能为空");
-        if (config.videoCount * config.matchesPerVideo > 20) {
-          errors.push("视频数 × 每视频人数不能超过 20");
-        }
         if (config.minDelayMs > config.maxDelayMs) {
           errors.push("最小发送间隔不能大于最大发送间隔");
         }
@@ -572,7 +556,7 @@
 
       function connectEvents(runId) {
         eventSource?.close();
-        eventSource = new EventSource(`/api/runs/${encodeURIComponent(runId)}/events`);
+        eventSource = new EventSource(apiUrl(`/api/runs/${encodeURIComponent(runId)}/events`));
         eventSource.addEventListener("snapshot", (event) => applySnapshot(JSON.parse(event.data)));
         eventSource.addEventListener("update", (event) => {
           const update = JSON.parse(event.data);
@@ -582,8 +566,17 @@
         eventSource.onerror = () => addLog("warn", "进度连接暂时中断，浏览器会自动重连");
       }
 
+      function apiUrl(path) {
+        if (!location.protocol.startsWith("http")) {
+          throw new Error(
+            "请通过 npm start 或打包后的 exe 启动服务，再在浏览器打开提示的 http://127.0.0.1:端口 地址使用（当前是预览/本地文件，无法连接后端）"
+          );
+        }
+        return new URL(path, location.origin).toString();
+      }
+
       async function request(url, options = {}) {
-        const response = await fetch(url, {
+        const response = await fetch(apiUrl(url), {
           ...options,
           headers: { "content-type": "application/json", ...(options.headers || {}) }
         });
@@ -632,7 +625,7 @@
         }).catch((error) => showErrors([error.message]));
       });
       exportButton.addEventListener("click", () => {
-        if (currentRunId) location.href = `/api/runs/${encodeURIComponent(currentRunId)}/results.csv`;
+        if (currentRunId) location.href = apiUrl(`/api/runs/${encodeURIComponent(currentRunId)}/results.csv`);
       });
 
       document.querySelectorAll(".tab").forEach((tab) => {

@@ -1,9 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
-import { createApplication } from "../server.mjs";
+import {
+  createApplication,
+  listenOnAvailablePort
+} from "../server.mjs";
 
 test("API persists config and only allows one active run", async (t) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "douyin-dm-server-"));
@@ -65,4 +69,25 @@ test("API persists config and only allows one active run", async (t) => {
     await new Promise((resolve) => setTimeout(resolve, 20));
   }
   assert.equal(terminal.status, "stopped");
+});
+
+test("server selects the next port when the preferred port is occupied", async (t) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "douyin-dm-port-"));
+  t.after(() => fs.rm(root, { recursive: true, force: true }));
+
+  const blocker = http.createServer((_request, response) => response.end("busy"));
+  await new Promise((resolve) => blocker.listen(0, "127.0.0.1", resolve));
+  t.after(() => blocker.close());
+  const preferredPort = blocker.address().port;
+
+  const { server } = await createApplication({ rootDir: root });
+  t.after(() => server.close());
+  const listening = await listenOnAvailablePort(server, {
+    preferredPort,
+    maxAttempts: 10
+  });
+
+  assert.ok(listening.port > preferredPort);
+  const health = await (await fetch(`${listening.url}/api/health`)).json();
+  assert.equal(health.app, "douyin-keyword-comment-dm-gui");
 });

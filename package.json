@@ -1,13 +1,17 @@
 {
   "name": "douyin-keyword-comment-dm-gui",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
+    "build:exe": "node scripts/build-single-exe.mjs",
     "test": "node --test"
   },
   "dependencies": {
     "playwright": "1.60.0"
+  },
+  "devDependencies": {
+    "postject": "1.0.0-alpha.6"
   }
 }
