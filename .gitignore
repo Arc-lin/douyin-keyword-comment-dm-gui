@@ -1,4 +1,19 @@
+# 依赖
 node_modules/
+
+# 运行时数据（登录态、历史、截图、导出等，切勿提交）
 data/
+
+# 构建产物
 dist/
+
+# 日志
 *.log
+.srv.log
+
+# 操作系统 / 编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
