@@ -316,12 +316,17 @@
                 </select>
               </div>
               <div class="field">
+                <label for="matchesPerVideo">每视频目标人数</label>
+                <input id="matchesPerVideo" name="matchesPerVideo" type="number" min="1">
+              </div>
+              <div class="field">
                 <label for="videoCount">随机视频数</label>
                 <input id="videoCount" name="videoCount" type="number" min="1">
               </div>
               <div class="field">
-                <label for="matchesPerVideo">每视频目标人数</label>
-                <input id="matchesPerVideo" name="matchesPerVideo" type="number" min="1">
+                <label for="candidateLimit">候选视频上限</label>
+                <input id="candidateLimit" name="candidateLimit" type="number" min="1">
+                <span class="hint">候选视频上限必须 ≥ 随机视频数，建议留出余量（例如想随机选 N 个就设成 2~3 倍），否则候选池凑不够，任务会直接失败。</span>
               </div>
               <div class="field full">
                 <label for="keywords">评论关键词</label>
@@ -346,16 +351,22 @@
                   </select>
                 </div>
                 <div class="field">
-                  <label for="candidateLimit">候选视频上限</label>
-                  <input id="candidateLimit" name="candidateLimit" type="number" min="1">
-                </div>
-                <div class="field">
                   <label for="maxComments">每视频评论上限</label>
                   <input id="maxComments" name="maxComments" type="number" min="1">
                 </div>
                 <div class="field">
                   <label for="maxScrolls">评论滚动轮数</label>
                   <input id="maxScrolls" name="maxScrolls" type="number" min="1">
+                </div>
+                <div class="field">
+                  <label for="searchScrollRounds">搜索结果滚动次数上限</label>
+                  <input id="searchScrollRounds" name="searchScrollRounds" type="number" min="1">
+                  <span class="hint">滚动收集候选视频时最多滚动几次，凑够“候选视频上限”会提前停止。</span>
+                </div>
+                <div class="field full">
+                  <label for="chromePath">Chrome / Edge 路径</label>
+                  <input id="chromePath" name="chromePath" type="text" placeholder="留空则自动探测，例如 /Applications/Google Chrome.app/Contents/MacOS/Google Chrome">
+                  <span class="hint">留空则使用默认探测路径或 CHROME_PATH 环境变量。</span>
                 </div>
                 <div class="field">
                   <label for="actionTimeoutMs">操作超时（毫秒）</label>
@@ -460,7 +471,7 @@
       const numericFields = new Set([
         "videoCount", "matchesPerVideo", "candidateLimit", "maxComments",
         "maxScrolls", "actionTimeoutMs", "dmReadyTimeoutMs", "dmOpenRetries",
-        "navigationTimeoutMs", "minDelayMs", "maxDelayMs"
+        "navigationTimeoutMs", "minDelayMs", "maxDelayMs", "searchScrollRounds"
       ]);
 
       function formConfig() {
