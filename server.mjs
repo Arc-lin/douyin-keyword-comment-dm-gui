@@ -11,7 +11,6 @@ import {
   runDouyinTask,
   StoppedError
 } from "./lib/douyin-runner.mjs";
-import { pickBrowserPath } from "./lib/browser-picker.mjs";
 import { Storage } from "./lib/storage.mjs";
 
 const { name: APP_NAME, version: APP_VERSION } =
@@ -209,16 +208,6 @@ export async function createApplication({
 
       if (request.method === "GET" && pathname === "/api/config") {
         json(response, 200, await storage.readConfig());
-        return;
-      }
-
-      if (request.method === "POST" && pathname === "/api/browsers/pick") {
-        try {
-          const selectedPath = await pickBrowserPath();
-          json(response, 200, { path: selectedPath });
-        } catch (error) {
-          json(response, 500, { error: error.message });
-        }
         return;
       }
 
